@@ -1,0 +1,12 @@
+[project]
+name = "hrms-mcp-new"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "fastmcp>=2.14.5",
+    "httpx>=0.28.1",
+    "python-dotenv>=1.2.1",
+]

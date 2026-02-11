@@ -6,7 +6,7 @@ from fastmcp import FastMCP
 import asyncpg
 from dotenv import load_dotenv
 import asyncio
-import os
+
 
 # Load variables from .env file
 load_dotenv()
@@ -17,9 +17,12 @@ mcp = FastMCP(name="Demo Server")
 
 # Configuration from Environment Variables
 BASE_URL = os.getenv("HRMS_API_BASE_URL", "https://hrms-backend-1-m8ml.onrender.com")
-CLIENT_ID = os.getenv("HRMS_CLIENT_ID")
-CLIENT_SECRET = os.getenv("HRMS_CLIENT_SECRET")
+# CLIENT_ID = os.getenv("HRMS_CLIENT_ID")
+# CLIENT_SECRET = os.getenv("HRMS_CLIENT_SECRET")
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is missing (set it in Render Environment Variables).")
 
 
 # --- DATABASE HELPER ---
@@ -41,9 +44,29 @@ async def init_db():
     finally:
         await conn.close()
         
+        
+def get_hrms_credentials():
+    ctx = mcp.ctx
+    if not ctx or not ctx.request:
+        raise RuntimeError("No request context available")
+
+    headers = ctx.request.headers
+
+    client_id = headers.get("x-hrms-client-id")
+    client_secret = headers.get("x-hrms-client-secret")
+
+    if not client_id or not client_secret:
+        raise RuntimeError("Missing HRMS credentials in headers")
+
+    return (
+        client_id,
+        client_secret
+    )    
+        
 # --- AUTH LOGIC HELPERS ---
 
 async def save_tokens(access: str, refresh: str):
+    client_id,_ = get_hrms_credentials()
     conn = await get_db_connection()
     try:
         await conn.execute('''
@@ -52,14 +75,15 @@ async def save_tokens(access: str, refresh: str):
             ON CONFLICT (client_id) DO UPDATE 
             SET access_token = EXCLUDED.access_token, 
                 refresh_token = EXCLUDED.refresh_token
-        ''', CLIENT_ID, access, refresh)
+        ''', client_id, access, refresh)
     finally:
         await conn.close()
 
 async def get_stored_tokens():
     conn = await get_db_connection()
+    client_id,_ = get_hrms_credentials()
     try:
-        row = await conn.fetchrow('SELECT access_token, refresh_token FROM hrms_tokens WHERE client_id = $1', CLIENT_ID)
+        row = await conn.fetchrow('SELECT access_token, refresh_token FROM hrms_tokens WHERE client_id = $1', client_id)
         return row if row else None
     finally:
         await conn.close()
@@ -67,7 +91,8 @@ async def get_stored_tokens():
 async def perform_fresh_login():
     """Internal helper to login and store tokens."""
     url = f"{BASE_URL}/auth/login/"
-    payload = {"username": CLIENT_ID, "password": CLIENT_SECRET}
+    client_id,client_secret = get_hrms_credentials()
+    payload = {"username": client_id, "password": client_secret}
     
     async with httpx.AsyncClient() as client:
         r = await client.post(url, json=payload)
@@ -260,7 +285,10 @@ def add_numbers(a: float, b: float) -> float:
 def main():
     
     
-    asyncio.run(init_db())
+    try:
+        asyncio.run(init_db())
+    except Exception as e:
+        print(f"[WARN] init_db failed: {e}", file=sys.stderr)
     
     # print("[HRMS Server] starting...", file=sys.stderr)
     # mcp.run(transport="stdio")

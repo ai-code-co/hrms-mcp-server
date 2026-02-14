@@ -6,7 +6,7 @@ import asyncio
 import asyncpg
 from fastmcp import FastMCP
 from dotenv import load_dotenv
-from fastapi import Request, Form
+from fastapi import Request
 from fastapi.responses import HTMLResponse
 
 load_dotenv()
@@ -48,10 +48,10 @@ async def init_db():
 
 # --- WEB UI (Bypasses ChatGPT Safety) ---
 
-@mcp.fastapi.get("/login", response_class=HTMLResponse)
-async def login_page():
+@mcp.custom_route("/login", methods=["GET"])
+async def login_page(request: Request):
     """A simple login form hosted on the MCP server."""
-    return """
+    return HTMLResponse("""
     <html>
         <body>
             <h2>HRMS Login</h2>
@@ -62,11 +62,21 @@ async def login_page():
             </form>
         </body>
     </html>
-    """
+    """)
 
-@mcp.fastapi.post("/login", response_class=HTMLResponse)
-async def handle_login(username: str = Form(...), password: str = Form(...)):
+@mcp.custom_route("/login", methods=["POST"])
+async def handle_login(request: Request):
     """Validates credentials with HRMS and generates a pairing code."""
+    form = await request.form()
+    username = form.get("username")
+    password = form.get("password")
+
+    if not username or not password:
+        return HTMLResponse(
+            "<h1>Login Failed</h1><p>Missing username or password.</p><a href='/login'>Try again</a>",
+            status_code=400
+        )
+
     url = f"{BASE_URL}/auth/login/"
     async with httpx.AsyncClient() as client:
         r = await client.post(url, json={"username": username, "password": password})
@@ -85,9 +95,14 @@ async def handle_login(username: str = Form(...), password: str = Form(...)):
             )
             await conn.close()
             
-            return f"<h1>Success!</h1><p>Your pairing code is: <b>{pairing_code}</b></p><p>Copy this code and give it to ChatGPT.</p>"
+            return HTMLResponse(
+                f"<h1>Success!</h1><p>Your pairing code is: <b>{pairing_code}</b></p><p>Copy this code and give it to ChatGPT.</p>"
+            )
         else:
-            return f"<h1>Login Failed</h1><p>{r.text}</p><a href='/login'>Try again</a>"
+            return HTMLResponse(
+                f"<h1>Login Failed</h1><p>{r.text}</p><a href='/login'>Try again</a>",
+                status_code=r.status_code
+            )
 
 # --- TOOLS ---
 
@@ -148,7 +163,7 @@ async def get_my_salary(session_name: str) -> str:
 def main():
     asyncio.run(init_db())
     port = int(os.getenv("PORT", 8000))
-    mcp.run(transport="sse", host="0.0.0.0", port=port)
+    mcp.run(transport="http", host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()

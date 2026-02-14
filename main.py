@@ -156,7 +156,7 @@ async def hrms_api_call(session_name: str, method: str, endpoint: str, params=No
 @mcp.tool()
 async def get_my_salary(session_name: str) -> str:
     """Get salary info. Requires the session_name used during auth."""
-    return await hrms_api_call(session_name, "GET", "/employees/me/salary-info/")
+    return await hrms_api_call(session_name, "GET", "/api/payroll/user-salary-info/")
 
 # --- START ---
 

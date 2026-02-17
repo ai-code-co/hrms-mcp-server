@@ -72,8 +72,8 @@ async def handle_connect(request: Request):
         )
     
     async with httpx.AsyncClient() as client:
-        r = await client.post(f"{BASE_URL}/api/auth/login/", json={"username": username, "password": password})
-        print("LOGIN URL:", f"{BASE_URL}/api/auth/login/")
+        r = await client.post(f"{BASE_URL}/auth/login/", json={"username": username, "password": password})
+        print("LOGIN URL:", f"{BASE_URL}/auth/login/")
         print("LOGIN STATUS:", r.status_code)
         print("LOGIN BODY:", r.text)
 

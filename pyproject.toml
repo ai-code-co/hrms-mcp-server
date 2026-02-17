@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "hrms-mcp-new"
 version = "0.1.0"
@@ -12,3 +16,6 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "python-multipart>=0.0.22",
 ]
+
+[tool.setuptools]
+packages = ["database", "routes", "tools"]

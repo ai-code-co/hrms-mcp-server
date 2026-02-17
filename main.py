@@ -67,7 +67,7 @@ async def handle_connect(request: Request):
     username, password = form.get("username"), form.get("password")
     
     async with httpx.AsyncClient() as client:
-        r = await client.post(f"{BASE_URL}/auth/login/", json={"username": username, "password": password})
+        r = await client.post(f"{BASE_URL}/api/auth/login/", json={"username": username, "password": password})
         if r.status_code == 200:
             data = r.json()
             pairing_code = "".join(secrets.choice("0123456789") for _ in range(6))
@@ -135,13 +135,12 @@ async def hrms_api_call(endpoint: str, method="GET", params=None):
 
 # ---MCP Tools---
 @mcp.tool()
-async def get_my_salary(session_name: str) -> str:
-    """Get salary info. Requires the session_name used during auth."""
-    return await hrms_api_call(session_name, "GET", "/api/payroll/user-salary-info/")
+async def get_my_salary() -> str:
+    """Get salary info."""
+    return await hrms_api_call( "/api/payroll/user-salary-info/", "GET")
 
 @mcp.tool()
 async def get_user_salary_info(
-    session_name: str,
     userid: int = None,
     month: int = None,
     year: int = None
@@ -164,11 +163,10 @@ async def get_user_salary_info(
     if year is not None:
         params["year"] = year
 
-    return await hrms_api_call(session_name, "GET", "/api/payroll/user-salary-info/", params=params or None)
+    return await hrms_api_call( "/api/payroll/user-salary-info/","GET", params=params or None)
 
 @mcp.tool()
 async def list_holidays(
-    session_name: str,
     year: int = None,
     page: int = 1
 ) -> str:
@@ -180,11 +178,10 @@ async def list_holidays(
     params = {"page": page}
     if year is not None:
         params["year"] = year
-    return await hrms_api_call(session_name, "GET", "/api/holidays/", params=params)
+    return await hrms_api_call("/api/holidays/", "GET", params=params)
 
 @mcp.tool()
 async def list_attendance(
-    session_name: str,
     search: str = None,
     ordering: str = None,
     page: int = 1
@@ -200,11 +197,10 @@ async def list_attendance(
         params["search"] = search
     if ordering:
         params["ordering"] = ordering
-    return await hrms_api_call(session_name, "GET", "/api/attendance/", params=params)
+    return await hrms_api_call("/api/attendance/","GET", params=params)
 
 @mcp.tool()
 async def get_monthly_attendance(
-    session_name: str,
     month: int,
     year: int,
     search: str = None,
@@ -236,11 +232,10 @@ async def get_monthly_attendance(
     if userid is not None:
         params["userid"] = userid
 
-    return await hrms_api_call(session_name, "GET", "/api/attendance/monthly/", params=params)
+    return await hrms_api_call("/api/attendance/monthly/", "GET", params=params)
 
 @mcp.tool()
 async def get_my_attendance_history(
-    session_name: str,
     start_date: str = None,
     end_date: str = None,
     search: str = None,
@@ -265,11 +260,10 @@ async def get_my_attendance_history(
     if ordering:
         params["ordering"] = ordering
 
-    return await hrms_api_call(session_name, "GET", "/api/attendance/my-attendance/", params=params)
+    return await hrms_api_call("/api/attendance/my-attendance/","GET", params=params)
 
 @mcp.tool()
 async def get_today_attendance(
-    session_name: str,
     search: str = None,
     ordering: str = None,
     page: int = 1
@@ -286,7 +280,7 @@ async def get_today_attendance(
     if ordering:
         params["ordering"] = ordering
 
-    return await hrms_api_call(session_name, "GET", "/api/attendance/today/", params=params)
+    return await hrms_api_call("/api/attendance/today/","GET",params=params)
 
 # --- START ---
 

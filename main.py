@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse
 
 load_dotenv()
 
-BASE_URL = os.getenv("HRMS_API_BASE_URL", "https://hrms-backend-1-m8ml.onrender.com")
+BASE_URL = os.getenv("HRMS_API_BASE_URL", "https://hrms-backend-1-m8ml.onrender.com").rstrip("/")
 DATABASE_URL = os.getenv("DATABASE_URL")
 SERVER_URL = os.getenv("SERVER_URL", "https://hrms-mcp-server.onrender.com") 
 
@@ -65,9 +65,18 @@ async def connect_page(request: Request):
 async def handle_connect(request: Request):
     form = await request.form()
     username, password = form.get("username"), form.get("password")
+    if not username or not password:
+        return HTMLResponse(
+            "<h1>Login Failed</h1><p>Missing username or password.</p><a href='/connect'>Try again</a>",
+            status_code=400
+        )
     
     async with httpx.AsyncClient() as client:
         r = await client.post(f"{BASE_URL}/api/auth/login/", json={"username": username, "password": password})
+        print("LOGIN URL:", f"{BASE_URL}/api/auth/login/")
+        print("LOGIN STATUS:", r.status_code)
+        print("LOGIN BODY:", r.text)
+
         if r.status_code == 200:
             data = r.json()
             pairing_code = "".join(secrets.choice("0123456789") for _ in range(6))

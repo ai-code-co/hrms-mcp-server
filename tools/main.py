@@ -7,6 +7,7 @@ from .get_today_attendance import get_today_attendance
 from .get_user_salary_info import get_user_salary_info
 from .get_connection_link import get_connection_link
 from .link_account_with_code import link_account_with_code 
+from .create_attendance import create_attendance
 
 ALL_TOOLS = [
     get_connection_link,
@@ -17,6 +18,7 @@ ALL_TOOLS = [
     get_my_attendance_history,
     get_today_attendance,
     get_user_salary_info,
+    create_attendance,
 ]
 
 def register_tools(mcp):

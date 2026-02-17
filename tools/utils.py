@@ -17,7 +17,7 @@ async def refresh_tokens(session_id: str, refresh_token: str):
     return None
 
 
-async def hrms_api_call(endpoint: str, method="GET", params=None):
+async def hrms_api_call(endpoint: str, method="GET", params=None, json_data=None):
     conn = await get_db_connection()
     tokens = await conn.fetchrow("SELECT access_token, refresh_token FROM user_sessions WHERE session_id = 'default'")
     await conn.close()
@@ -27,13 +27,25 @@ async def hrms_api_call(endpoint: str, method="GET", params=None):
 
     async with httpx.AsyncClient(timeout=20.0) as client:
         headers = {"Authorization": f"Bearer {tokens['access_token']}"}
-        resp = await client.request(method, f"{BASE_URL}{endpoint}", headers=headers, params=params)
+        resp = await client.request(
+            method,
+            f"{BASE_URL}{endpoint}",
+            headers=headers,
+            params=params,
+            json=json_data,
+        )
         
         if resp.status_code == 401: # Expired
             new_access = await refresh_tokens('default', tokens['refresh_token'])
             if new_access:
                 headers["Authorization"] = f"Bearer {new_access}"
-                resp = await client.request(method, f"{BASE_URL}{endpoint}", headers=headers, params=params)
+                resp = await client.request(
+                    method,
+                    f"{BASE_URL}{endpoint}",
+                    headers=headers,
+                    params=params,
+                    json=json_data,
+                )
         
         return resp.text
     
